@@ -1,0 +1,19 @@
+---
+apiVersion: v1
+kind: Namespace
+metadata:
+  name: syspulse
+  labels:
+    name: syspulse
+    app.kubernetes.io/managed-by: kubectl
+
+---
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: syspulse-config
+  namespace: syspulse
+data:
+  ENVIRONMENT: "production"
+  APP_NAME: "syspulse"
+  LOG_LEVEL: "info"

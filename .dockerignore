@@ -1,0 +1,11 @@
+.git
+.gitignore
+*.md
+Jenkinsfile
+docker-compose.yml
+terraform/
+k8s/
+.env*
+node_modules/
+.DS_Store
+*.log

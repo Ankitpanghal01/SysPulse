@@ -1,0 +1,124 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+  <title>SysPulse — System Monitor</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link href="https://fonts.googleapis.com/css2?family=Share+Tech+Mono&family=Barlow:wght@300;400;600;700&display=swap" rel="stylesheet">
+  <link rel="stylesheet" href="style.css">
+</head>
+<body>
+  <div class="scanline"></div>
+
+  <header>
+    <div class="logo">
+      <span class="logo-icon">◈</span>
+      <span class="logo-text">SYS<strong>PULSE</strong></span>
+    </div>
+    <div class="status-bar">
+      <span class="dot live"></span>
+      <span id="live-label">LIVE</span>
+      <span class="sep">|</span>
+      <span id="clock">--:--:--</span>
+      <span class="sep">|</span>
+      <span id="uptime-display">UPTIME: 00:00:00</span>
+    </div>
+    <nav>
+      <button class="nav-btn active" data-view="dashboard">Dashboard</button>
+      <button class="nav-btn" data-view="metrics">Metrics</button>
+      <button class="nav-btn" data-view="logs">Logs</button>
+    </nav>
+  </header>
+
+  <!-- DASHBOARD VIEW -->
+  <main id="view-dashboard" class="view active">
+    <section class="kpi-row">
+      <div class="kpi-card" id="kpi-cpu">
+        <div class="kpi-label">CPU USAGE</div>
+        <div class="kpi-value" id="cpu-val">--</div>
+        <div class="kpi-unit">%</div>
+        <div class="kpi-bar"><div class="kpi-fill" id="cpu-fill"></div></div>
+      </div>
+      <div class="kpi-card" id="kpi-mem">
+        <div class="kpi-label">MEMORY</div>
+        <div class="kpi-value" id="mem-val">--</div>
+        <div class="kpi-unit">%</div>
+        <div class="kpi-bar"><div class="kpi-fill" id="mem-fill"></div></div>
+      </div>
+      <div class="kpi-card" id="kpi-net">
+        <div class="kpi-label">NETWORK I/O</div>
+        <div class="kpi-value" id="net-val">--</div>
+        <div class="kpi-unit">MB/s</div>
+        <div class="kpi-bar"><div class="kpi-fill" id="net-fill"></div></div>
+      </div>
+      <div class="kpi-card" id="kpi-disk">
+        <div class="kpi-label">DISK USAGE</div>
+        <div class="kpi-value" id="disk-val">--</div>
+        <div class="kpi-unit">%</div>
+        <div class="kpi-bar"><div class="kpi-fill" id="disk-fill"></div></div>
+      </div>
+    </section>
+
+    <section class="chart-section">
+      <div class="chart-card wide">
+        <div class="chart-header">
+          <span>CPU HISTORY</span>
+          <span class="chart-tag">60s window</span>
+        </div>
+        <canvas id="cpu-chart" height="100"></canvas>
+      </div>
+      <div class="chart-card">
+        <div class="chart-header">
+          <span>MEMORY HISTORY</span>
+          <span class="chart-tag">60s window</span>
+        </div>
+        <canvas id="mem-chart" height="100"></canvas>
+      </div>
+    </section>
+
+    <section class="services-section">
+      <div class="section-title">SERVICES</div>
+      <div class="services-grid" id="services-grid"></div>
+    </section>
+  </main>
+
+  <!-- METRICS VIEW -->
+  <main id="view-metrics" class="view">
+    <div class="metrics-panel">
+      <div class="section-title">PROMETHEUS METRICS</div>
+      <div class="metrics-table-wrap">
+        <table class="metrics-table">
+          <thead><tr><th>METRIC</th><th>VALUE</th><th>TYPE</th><th>TREND</th></tr></thead>
+          <tbody id="metrics-body"></tbody>
+        </table>
+      </div>
+    </div>
+  </main>
+
+  <!-- LOGS VIEW -->
+  <main id="view-logs" class="view">
+    <div class="logs-panel">
+      <div class="logs-toolbar">
+        <span class="section-title">SYSTEM LOGS</span>
+        <div class="log-filters">
+          <button class="filter-btn active" data-level="all">ALL</button>
+          <button class="filter-btn" data-level="INFO">INFO</button>
+          <button class="filter-btn" data-level="WARN">WARN</button>
+          <button class="filter-btn" data-level="ERROR">ERROR</button>
+        </div>
+        <button id="clear-logs">CLEAR</button>
+      </div>
+      <div class="log-stream" id="log-stream"></div>
+    </div>
+  </main>
+
+  <footer>
+    <span>SysPulse v1.0.0</span>
+    <span>Prometheus ◈ Grafana ◈ Kubernetes</span>
+    <span id="endpoint">:9090 / :3000 / :8080</span>
+  </footer>
+
+  <script src="app.js"></script>
+</body>
+</html>
