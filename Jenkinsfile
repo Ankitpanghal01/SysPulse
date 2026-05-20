@@ -11,7 +11,6 @@ pipeline {
         IMAGE_TAG      = "${env.GIT_COMMIT?.take(8) ?: 'latest'}"
         KUBECONFIG     = credentials('kubeconfig')
         DOCKER_CREDS   = credentials('docker-registry-credentials')
-        SLACK_WEBHOOK  = credentials('slack-webhook-url')
         K8S_NAMESPACE  = 'syspulse'
     }
 
@@ -215,23 +214,12 @@ pipeline {
     post {
         success {
             echo "✅ Pipeline succeeded!"
-            sh """
-                curl -s -X POST '${SLACK_WEBHOOK}' \
-                  -H 'Content-Type: application/json' \
-                  -d '{"text":"✅ *${APP_NAME}* build <${env.BUILD_URL}|#${env.BUILD_NUMBER}> succeeded on `${env.BRANCH_NAME}` (${env.SHORT_SHA})"}' || true
-            """
         }
         failure {
             echo "❌ Pipeline failed!"
-            sh """
-                curl -s -X POST '${SLACK_WEBHOOK}' \
-                  -H 'Content-Type: application/json' \
-                  -d '{"text":"❌ *${APP_NAME}* build <${env.BUILD_URL}|#${env.BUILD_NUMBER}> FAILED on `${env.BRANCH_NAME}`"}' || true
-            """
         }
-        always {
-            sh "docker rmi ${env.IMAGE_FULL} ${env.IMAGE_LATEST} 2>/dev/null || true"
-            cleanWs()
-        }
+            always {
+                echo "🔔 Pipeline finished at: $(date)"
+            }
     }
 }
