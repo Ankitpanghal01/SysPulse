@@ -218,8 +218,5 @@ pipeline {
         failure {
             echo "❌ Pipeline failed!"
         }
-            always {
-                echo "🔔 Pipeline finished at: $(date)"
-            }
     }
 }
