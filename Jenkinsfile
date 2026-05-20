@@ -67,22 +67,7 @@ pipeline {
             }
         }
 
-        // ── Stage 4: Build Docker Image ────────────────────────────────────
-        stage('Build') {
-            steps {
-                echo "🐳 Building Docker image: ${env.IMAGE_FULL}"
-                sh """
-                    docker build \
-                      --label "build.number=${env.BUILD_NUMBER}" \
-                      --label "git.commit=${env.SHORT_SHA}" \
-                      --label "git.branch=${env.BRANCH_NAME}" \
-                      --label "build.date=\$(date -u +%Y-%m-%dT%H:%M:%SZ)" \
-                      -t ${env.IMAGE_FULL} \
-                      -t ${env.IMAGE_LATEST} \
-                      .
-                """
-            }
-        }
+        
 
         // ── Stage 5: Image Security Scan ──────────────────────────────────
         stage('Image Scan') {
