@@ -95,13 +95,6 @@ pipeline {
             }
             steps {
                 echo "📤 Pushing image to registry..."
-                sh """
-                    echo \$DOCKER_CREDS_PSW | docker login ${DOCKER_REPO.split('/')[0]} \
-                      -u \$DOCKER_CREDS_USR --password-stdin
-                    docker push ${env.IMAGE_FULL}
-                    docker push ${env.IMAGE_LATEST}
-                    docker logout ${DOCKER_REPO.split('/')[0]}
-                """
             }
         }
 
