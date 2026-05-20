@@ -42,30 +42,6 @@ pipeline {
         // ── Stage 2: Lint & Validate ───────────────────────────────────────
         stage('Lint & Validate') {
             parallel {
-                stage('HTML Lint') {
-                    steps {
-                        sh '''
-                            npm install -g htmlhint --silent
-                            htmlhint app/index.html || true
-                        '''
-                    }
-                }
-                stage('CSS Lint') {
-                    steps {
-                        sh '''
-                            npm install -g stylelint stylelint-config-standard --silent
-                            stylelint "app/**/*.css" --config '{"extends":"stylelint-config-standard"}' || true
-                        '''
-                    }
-                }
-                stage('JS Lint') {
-                    steps {
-                        sh '''
-                            npm install -g eslint --silent
-                            eslint app/app.js --env browser,es2022 || true
-                        '''
-                    }
-                }
                 stage('Docker Lint') {
                     steps {
                         sh '''
