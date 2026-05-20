@@ -3,12 +3,7 @@
 //  Stages: Lint → Test → Build → Push → Deploy (Staging) → Deploy (Prod)
 // ─────────────────────────────────────────────────────────────────────────────
 pipeline {
-    agent {
-        docker {
-            image 'node:20-alpine'
-            args  '-v /var/run/docker.sock:/var/run/docker.sock'
-        }
-    }
+    agent any
 
     environment {
         APP_NAME       = 'syspulse'
