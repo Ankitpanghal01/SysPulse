@@ -20,9 +20,7 @@ services:
 
   # ── Frontend App ─────────────────────────────────────────────
   app:
-    build:
-      context: .
-      dockerfile: Dockerfile
+    image: ankitkumar2005/syspulse:latest
     container_name: syspulse-app
     restart: unless-stopped
     ports:
