@@ -143,11 +143,6 @@ pipeline {
                 DEPLOY_ENV    = 'production'
                 REPLICA_COUNT = '3'
             }
-            input {
-                message "Deploy ${env.SHORT_SHA} to Production?"
-                ok "Deploy"
-                submitter "admin,devops-lead"
-            }
             steps {
                 echo "🚀 Deploying to Production..."
                 sh """
