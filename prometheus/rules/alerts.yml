@@ -39,7 +39,7 @@ groups:
           description: "Target {{ $labels.instance }} has been down for 30 seconds."
 
       - alert: HighDiskUsage
-        expr: (1 - node_filesystem_avail_bytes{fstype!="tmpfs"} / node_filesystem_size_bytes{fstype!="tmpfs"}) * 100 > 80
+        expr: (1 - node_filesystem_avail_bytes{fstype!~"tmpfs|overlay|squashfs|fuse.*|virtiofs|nsfs|ramfs|devtmpfs|9p|vfat"} / node_filesystem_size_bytes{fstype!~"tmpfs|overlay|squashfs|fuse.*|virtiofs|nsfs|ramfs|devtmpfs|9p|vfat"}) * 100 > 80
         for: 5m
         labels:
           severity: warning

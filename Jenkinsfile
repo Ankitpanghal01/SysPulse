@@ -1,17 +1,17 @@
-// ─────────────────────────────────────────────────────────────────────────────
-//  SysPulse — Jenkins CI/CD Pipeline
-//  Stages: Lint → Test → Build → Push → Deploy (Staging) → Deploy (Prod)
-// ─────────────────────────────────────────────────────────────────────────────
 pipeline {
     agent any
 
+    parameters {
+        booleanParam(name: 'PUSH_IMAGE', defaultValue: false,
+                     description: 'Push the image to Docker Hub (needs credential id: dockerhub-creds)')
+        booleanParam(name: 'DEPLOY_K8S', defaultValue: false,
+                     description: 'Deploy to Kubernetes (needs a cluster and credential id: kubeconfig)')
+    }
+
     environment {
-        APP_NAME       = 'syspulse'
-        DOCKER_REPO    = "${env.DOCKER_REGISTRY ?: 'registry.example.com'}/syspulse"
-        IMAGE_TAG      = "${env.GIT_COMMIT?.take(8) ?: 'latest'}"
-        KUBECONFIG     = credentials('kubeconfig')
-        DOCKER_CREDS   = credentials('docker-registry-credentials')
-        K8S_NAMESPACE  = 'syspulse'
+        APP_NAME      = 'syspulse'
+        DOCKER_REPO   = 'ankitkumar2005/syspulse'
+        K8S_NAMESPACE = 'syspulse'
     }
 
     options {
@@ -23,56 +23,50 @@ pipeline {
 
     stages {
 
-        // ── Stage 1: Checkout & Setup ──────────────────────────────────────
         stage('Checkout') {
             steps {
-                echo "📦 Checking out branch: ${env.BRANCH_NAME}"
                 checkout scm
                 script {
-                    env.GIT_AUTHOR    = sh(returnStdout: true, script: 'git log -1 --format="%an"').trim()
-                    env.GIT_MESSAGE   = sh(returnStdout: true, script: 'git log -1 --format="%s"').trim()
-                    env.SHORT_SHA     = sh(returnStdout: true, script: 'git rev-parse --short HEAD').trim()
-                    env.IMAGE_FULL    = "${DOCKER_REPO}:${SHORT_SHA}"
-                    env.IMAGE_LATEST  = "${DOCKER_REPO}:latest"
+                    env.SHORT_SHA    = sh(returnStdout: true, script: 'git rev-parse --short HEAD').trim()
+                    env.IMAGE_FULL   = "${env.DOCKER_REPO}:${env.SHORT_SHA}"
+                    env.IMAGE_LATEST = "${env.DOCKER_REPO}:latest"
                 }
-                echo "Commit: ${env.SHORT_SHA} by ${env.GIT_AUTHOR}"
+                echo "Commit: ${env.SHORT_SHA}"
             }
         }
 
-        // ── Stage 2: Lint & Validate ───────────────────────────────────────
-        stage('Lint & Validate') {
-            parallel {
-                stage('Docker Lint') {
-                    steps {
-                        sh '''
-                            docker run --rm -i hadolint/hadolint < Dockerfile || true
-                        '''
-                    }
-                }
-            }
-        }
-
-        // ── Stage 3: Security Scan ─────────────────────────────────────────
-        stage('Security Scan') {
+        stage('Lint') {
             steps {
-                echo "🔍 Running Trivy filesystem scan..."
-                sh '''
-                    docker run --rm \
-                      -v "$(pwd):/project" \
-                      aquasec/trivy:latest \
-                      fs --severity HIGH,CRITICAL \
-                      --exit-code 0 \
-                      /project || true
-                '''
+                sh 'docker run --rm -i hadolint/hadolint < Dockerfile || true'
             }
         }
 
-        
+        stage('Build') {
+            steps {
+                echo "Building ${env.IMAGE_FULL}"
+                sh "docker build -t ${env.IMAGE_FULL} -t ${env.IMAGE_LATEST} ."
+            }
+        }
 
-        // ── Stage 5: Image Security Scan ──────────────────────────────────
+        stage('Test') {
+            steps {
+                sh "docker run --rm --entrypoint nginx ${env.IMAGE_FULL} -t"
+                sh """
+                    docker rm -f syspulse-ci-test || true
+                    docker run -d --name syspulse-ci-test ${env.IMAGE_FULL}
+                    sleep 3
+                    docker exec syspulse-ci-test wget -q -O /dev/null http://127.0.0.1/
+                """
+            }
+            post {
+                always {
+                    sh 'docker rm -f syspulse-ci-test || true'
+                }
+            }
+        }
+
         stage('Image Scan') {
             steps {
-                echo "🛡️  Scanning image for vulnerabilities..."
                 sh """
                     docker run --rm \
                       -v /var/run/docker.sock:/var/run/docker.sock \
@@ -84,88 +78,40 @@ pipeline {
             }
         }
 
-        // ── Stage 6: Push to Registry ─────────────────────────────────────
         stage('Push') {
-            when {
-                anyOf {
-                    branch 'main'
-                    branch 'staging'
-                    branch pattern: 'release/.*', comparator: 'REGEXP'
+            when { expression { return params.PUSH_IMAGE } }
+            environment {
+                DOCKER_CREDS = credentials('dockerhub-creds')
+            }
+            steps {
+                sh '''
+                    echo "$DOCKER_CREDS_PSW" | docker login -u "$DOCKER_CREDS_USR" --password-stdin
+                '''
+                sh "docker push ${env.IMAGE_FULL}"
+                sh "docker push ${env.IMAGE_LATEST}"
+            }
+            post {
+                always {
+                    sh 'docker logout || true'
                 }
             }
-            steps {
-                echo "📤 Pushing image to registry..."
-            }
         }
 
-        // ── Stage 7: Deploy to Staging ────────────────────────────────────
-        stage('Deploy → Staging') {
-            when { branch 'staging' }
-            environment {
-                DEPLOY_ENV = 'staging'
-                REPLICA_COUNT = '1'
-            }
+        stage('Deploy to Kubernetes') {
+            when { expression { return params.DEPLOY_K8S } }
             steps {
-                echo "🚀 Deploying to Staging..."
-                sh """
-                    export KUBECONFIG=\$KUBECONFIG
-                    kubectl set image deployment/${APP_NAME} \
-                      app=${env.IMAGE_FULL} \
-                      -n ${K8S_NAMESPACE}-staging
-                    kubectl rollout status deployment/${APP_NAME} \
-                      -n ${K8S_NAMESPACE}-staging \
-                      --timeout=120s
-                """
+                withCredentials([file(credentialsId: 'kubeconfig', variable: 'KUBECONFIG')]) {
+                    sh """
+                        kubectl set image deployment/${APP_NAME} app=${env.IMAGE_FULL} -n ${K8S_NAMESPACE}
+                        kubectl rollout status deployment/${APP_NAME} -n ${K8S_NAMESPACE} --timeout=300s
+                    """
+                }
             }
         }
-
-        // ── Stage 8: Smoke Tests ───────────────────────────────────────────
-        stage('Smoke Tests') {
-            when { branch 'staging' }
-            steps {
-                echo "🧪 Running smoke tests against staging..."
-                sh '''
-                    STAGING_URL="http://staging.syspulse.example.com"
-                    HTTP_STATUS=$(curl -s -o /dev/null -w "%{http_code}" $STAGING_URL/health)
-                    if [ "$HTTP_STATUS" != "200" ]; then
-                        echo "❌ Health check failed: HTTP $HTTP_STATUS"
-                        exit 1
-                    fi
-                    echo "✅ Smoke tests passed (HTTP $HTTP_STATUS)"
-                '''
-            }
-        }
-
-        // ── Stage 9: Deploy to Production ─────────────────────────────────
-        stage('Deploy → Production') {
-            when { branch 'main' }
-            environment {
-                DEPLOY_ENV    = 'production'
-                REPLICA_COUNT = '3'
-            }
-            steps {
-                echo "🚀 Deploying to Production..."
-                sh """
-                    export KUBECONFIG=\$KUBECONFIG
-                    kubectl set image deployment/${APP_NAME} \
-                      app=${env.IMAGE_FULL} \
-                      -n ${K8S_NAMESPACE}
-                    kubectl rollout status deployment/${APP_NAME} \
-                      -n ${K8S_NAMESPACE} \
-                      --timeout=300s
-                """
-            }
-        }
-
     }
 
-    // ─── Post Actions ──────────────────────────────────────────────────────
     post {
-        success {
-            echo "✅ Pipeline succeeded!"
-        }
-        failure {
-            echo "❌ Pipeline failed!"
-        }
+        success { echo 'Pipeline succeeded' }
+        failure { echo 'Pipeline failed' }
     }
 }
