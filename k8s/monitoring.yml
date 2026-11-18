@@ -16,7 +16,7 @@ metadata:
   namespace: monitoring
 spec:
   accessModes: [ReadWriteOnce]
-  storageClassName: gp3
+  storageClassName: standard
   resources:
     requests:
       storage: 50Gi
@@ -30,7 +30,7 @@ metadata:
   namespace: monitoring
 spec:
   accessModes: [ReadWriteOnce]
-  storageClassName: gp3
+  storageClassName: standard
   resources:
     requests:
       storage: 10Gi
@@ -201,16 +201,6 @@ subjects:
     namespace: monitoring
 
 ---
-# ── Grafana Secret ────────────────────────────────────────────────────────────
-apiVersion: v1
-kind: Secret
-metadata:
-  name: grafana-secret
-  namespace: monitoring
-type: Opaque
-stringData:
-  admin-user: admin
-  admin-password: "changeme123!"   # Override via Helm/Sealed Secrets in prod
 
 ---
 # ── Grafana Deployment ────────────────────────────────────────────────────────

@@ -52,7 +52,7 @@ spec:
 
       containers:
         - name: app
-          image: registry.example.com/syspulse:latest
+          image: ankitkumar2005/syspulse:latest
           imagePullPolicy: Always
           ports:
             - name: http
