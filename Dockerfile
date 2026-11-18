@@ -2,7 +2,7 @@
 # Stage 1: Build (no build step needed for pure HTML/CSS/JS)
 # Using multi-stage anyway for best practice demonstration
 # ─────────────────────────────────────────────
-FROM nginx:1.25-alpine AS base
+FROM nginx:stable-alpine AS base
 
 LABEL maintainer="devops@syspulse.io"
 LABEL description="SysPulse — System Monitor Frontend"
